@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Sichere Bereiche für Notch / Home-Indicator */
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* --- Druckansicht für den Arztbericht --- */
+@media screen {
+  .print-only {
+    display: none;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .print-page {
+    page-break-after: always;
+  }
+  .print-page:last-child {
+    page-break-after: auto;
+  }
+  table {
+    font-size: 10px;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+  @page {
+    margin: 16mm 12mm 18mm;
+  }
+  /* Wird von Chromium auf jeder gedruckten Seite wiederholt */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: #555;
+    padding-top: 2px;
+    border-top: 1px solid #ccc;
+  }
+}
