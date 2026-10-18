@@ -19,7 +19,6 @@ export function Settings() {
   const stammdaten = useLiveQuery(getStammdaten, []);
   const [name, setName] = useState<string | null>(null);
   const [geb, setGeb] = useState<string | null>(null);
-  const [az, setAz] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [pinSet, setPinSet] = useState(isPinSet());
   const [newPin, setNewPin] = useState('');
@@ -28,13 +27,11 @@ export function Settings() {
   // kontrollierte Werte: lokaler State überschreibt geladenen Wert erst nach Bearbeitung
   const nameVal = name ?? stammdaten?.name ?? '';
   const gebVal = geb ?? stammdaten?.geburtsdatum ?? '';
-  const azVal = az ?? stammdaten?.aktenzeichen ?? '';
 
   async function saveStammdaten() {
     await putStammdaten({
       name: nameVal.trim() || undefined,
       geburtsdatum: gebVal || undefined,
-      aktenzeichen: azVal.trim() || undefined,
     });
     flash('Stammdaten gespeichert.');
   }
@@ -80,9 +77,6 @@ export function Settings() {
         </Field>
         <Field label="Geburtsdatum">
           <input type="date" className={inputClass} value={gebVal} onChange={(e) => setGeb(e.target.value)} />
-        </Field>
-        <Field label="Aktenzeichen">
-          <input className={inputClass} value={azVal} onChange={(e) => setAz(e.target.value)} />
         </Field>
         <BigButton onClick={saveStammdaten} className="w-full">
           Stammdaten speichern

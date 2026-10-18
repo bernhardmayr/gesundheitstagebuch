@@ -32,7 +32,6 @@ export function berichtKopf(
   return [
     ['Name', stammdaten?.name || KEINE_ANGABEN],
     ['Geburtsdatum', stammdaten?.geburtsdatum ? formatDatum(stammdaten.geburtsdatum) : KEINE_ANGABEN],
-    ['Aktenzeichen', stammdaten?.aktenzeichen || KEINE_ANGABEN],
     [
       'Dokumentationszeitraum',
       doku

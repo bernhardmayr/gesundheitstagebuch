@@ -50,7 +50,6 @@ export function Report() {
       : [
           !stammdaten?.name && 'Name',
           !stammdaten?.geburtsdatum && 'Geburtsdatum',
-          !stammdaten?.aktenzeichen && 'Aktenzeichen',
         ].filter((f): f is string => !!f);
 
   async function pdf(art: 'download' | 'teilen') {

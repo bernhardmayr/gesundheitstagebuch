@@ -66,5 +66,4 @@ export interface Stammdaten {
   id: 'self'; // Singleton
   name?: string;
   geburtsdatum?: string; // YYYY-MM-DD
-  aktenzeichen?: string;
 }
