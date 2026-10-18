@@ -25,6 +25,8 @@ import {
   vorwarnzeitKurz,
   inkontinenzKurz,
   mahlzeitLabel,
+  ortLabel,
+  essensbezugKurz,
 } from '../lib/format';
 
 interface Tag {
@@ -130,7 +132,8 @@ export function History() {
                   .map((e) => (
                     <Row key={e.id} onEdit={() => setEditing({ kind: 'stuhl', data: e })} onDelete={() => deleteStuhl(e.id)}>
                       <span className="tabular-nums text-slate-500">{formatTime(e.zeitpunkt)}</span>{' '}
-                      {bristolTyp[e.bristol]} · {vorwarnzeitKurz[e.vorwarnzeit]}
+                      {bristolTyp[e.bristol]} · {vorwarnzeitKurz[e.vorwarnzeit]} · {ortLabel[e.ort]}
+                      {e.essensbezug && ` · Essen ${essensbezugKurz[e.essensbezug]}`}
                       {e.inkontinenz !== 'keine' && (
                         <span className="text-amber-600 dark:text-amber-400"> · {inkontinenzKurz[e.inkontinenz]}</span>
                       )}

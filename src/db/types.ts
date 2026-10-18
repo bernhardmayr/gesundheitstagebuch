@@ -11,6 +11,15 @@ export type Schmerz = 0 | 1 | 2 | 3;
 
 export type Ort = 'zuhause' | 'unterwegs' | 'arbeit';
 
+// Zeit seit dem letzten Essen — direkt im Stuhlformular erfragt (v1.1).
+export type Essensbezug =
+  | 'nuechtern' // > 3 h nichts gegessen
+  | 'unter_30min'
+  | '30_60min'
+  | '1_2h'
+  | 'ueber_2h'
+  | 'unbekannt';
+
 export interface StuhlEintrag {
   id: string;
   zeitpunkt: number; // epoch ms
@@ -20,7 +29,9 @@ export interface StuhlEintrag {
   vorlage_gewechselt: boolean;
   schmerzen: Schmerz;
   blut: boolean;
-  minuten_nach_mahlzeit?: number; // automatisch aus letztem Mahlzeit-Eintrag
+  // Primär: direkt im Formular erfasst. Alt-Einträge (vor v1.1) haben hier undefined.
+  essensbezug?: Essensbezug;
+  minuten_nach_mahlzeit?: number; // Fallback, nur falls eine Mahlzeit separat geloggt wurde
   ort: Ort;
   notiz?: string;
 }

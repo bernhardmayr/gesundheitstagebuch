@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useZeitraum } from '../lib/useZeitraum';
 import { computeKennzahlen, num, pct } from '../lib/derive';
-import { StatCard } from '../components/ui';
+import { EmptyState, StatCard } from '../components/ui';
 import {
   StuehleProTagChart,
   BristolChart,
   MahlzeitHistogramm,
+  EssensbezugChart,
+  OrtChart,
   GewichtChart,
 } from '../components/Charts';
 import { Heatmap } from '../components/Heatmap';
 import { InkontinenzTimeline } from '../components/InkontinenzTimeline';
 import { SegmentGroup } from '../components/SegmentGroup';
-import { formatDatum } from '../lib/format';
+import { formatDatum, KEINE_ANGABEN } from '../lib/format';
 
 const zeitraeume = [
   { value: '7', label: '7 Tage' },
@@ -54,16 +56,24 @@ export function Analysis() {
       {data.loading ? (
         <p className="text-slate-500">Lädt …</p>
       ) : data.stuhl.length === 0 && data.tage.length === 0 ? (
-        <p className="text-slate-500 dark:text-slate-400">Keine Daten im gewählten Zeitraum.</p>
+        <EmptyState>Im gewählten Zeitraum sind noch keine Einträge erfasst.</EmptyState>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Stühle / Tag (Ø)" value={num(k.stuehleProTagDurchschnitt)} hint={`Median ${num(k.stuehleProTagMedian, 0)} · Max ${num(k.stuehleProTagMax, 0)}`} />
-            <StatCard label="Durchfallstühle" value={pct(k.anteilDurchfall)} hint="Bristol 6–7" />
-            <StatCard label="Kurze Vorwarnzeit" value={pct(k.anteilVorwarnUnter5)} hint="< 5 Min" />
+            <StatCard
+              label="Stühle / Tag (Ø)"
+              value={num(k.stuehleProTagDurchschnitt)}
+              hint={k.anzahlStuehle ? `Median ${num(k.stuehleProTagMedian, 0)} · Max ${num(k.stuehleProTagMax, 0)}` : undefined}
+            />
+            <StatCard label="Durchfallstühle" value={k.anzahlStuehle ? pct(k.anteilDurchfall) : KEINE_ANGABEN} hint="Bristol 6–7" />
+            <StatCard label="Kurze Vorwarnzeit" value={k.anzahlStuehle ? pct(k.anteilVorwarnUnter5) : KEINE_ANGABEN} hint="< 5 Min" />
             <StatCard label="Inkontinenz / Woche" value={num(k.inkontinenzProWoche)} hint={`${k.inkontinenzGesamt} gesamt`} />
             <StatCard label="Nächte mit Stuhl" value={num(k.naechteMitStuhl, 0)} hint="23–06 Uhr" />
-            <StatCard label="Ø nach Mahlzeit" value={k.avgMinutenNachMahlzeit !== undefined ? `${num(k.avgMinutenNachMahlzeit, 0)} min` : '–'} />
+            <StatCard
+              label="Essensbezug < 60 Min"
+              value={k.anteilEssensbezugKurz !== undefined ? pct(k.anteilEssensbezugKurz) : KEINE_ANGABEN}
+              hint={k.essensbezugBasis ? `von ${k.essensbezugBasis} Stühlen mit Angabe` : 'Zeit seit dem Essen'}
+            />
           </div>
 
           <Card title="Stühle pro Tag" hint="Referenzlinie bei 3 (obere Norm)">
@@ -78,7 +88,15 @@ export function Analysis() {
             <Heatmap eintraege={data.stuhl} />
           </Card>
 
-          <Card title="Zeit nach Mahlzeit bis zum Stuhlgang" hint="Minuten, gruppiert">
+          <Card title="Zeit seit dem letzten Essen" hint="Direkt beim Stuhlgang erfasst">
+            <EssensbezugChart eintraege={data.stuhl} />
+          </Card>
+
+          <Card title="Ort der Stuhlgänge">
+            <OrtChart eintraege={data.stuhl} />
+          </Card>
+
+          <Card title="Minuten nach geloggter Mahlzeit" hint="Ergänzend, nur aus separat eingetragenen Mahlzeiten">
             <MahlzeitHistogramm eintraege={data.stuhl} />
           </Card>
 
@@ -92,7 +110,7 @@ export function Analysis() {
 
           <Card title="Dokumentierte Alltagseinschränkungen">
             {einschraenkungen.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">Keine dokumentiert.</p>
+              <EmptyState>Noch keine Einschränkungen dokumentiert (Tagesabschluss).</EmptyState>
             ) : (
               <ul className="space-y-2 text-sm">
                 {einschraenkungen.map((t) => (

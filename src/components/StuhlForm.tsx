@@ -1,5 +1,14 @@
-import { useState } from 'react';
-import type { Bristol, Inkontinenz, Ort, Schmerz, StuhlEintrag, Vorwarnzeit } from '../db/types';
+import { useEffect, useRef, useState } from 'react';
+import type {
+  Bristol,
+  Essensbezug,
+  Inkontinenz,
+  Ort,
+  Schmerz,
+  StuhlEintrag,
+  Vorwarnzeit,
+} from '../db/types';
+import { letzterOrtHeute } from '../db/repo';
 import { BristolPicker } from './BristolPicker';
 import { SegmentGroup } from './SegmentGroup';
 import { BigButton, Collapsible, Field, Toggle, inputClass } from './ui';
@@ -27,6 +36,35 @@ const ortOpts: { value: Ort; label: string }[] = [
   { value: 'arbeit', label: 'Arbeit' },
 ];
 
+const essensOpts: { value: Essensbezug; label: string; sub?: string }[] = [
+  { value: 'nuechtern', label: 'Nüchtern', sub: '> 3 h nichts' },
+  { value: 'unter_30min', label: '< 30 Min' },
+  { value: '30_60min', label: '30–60 Min' },
+  { value: '1_2h', label: '1–2 h' },
+  { value: 'ueber_2h', label: '> 2 h' },
+  { value: 'unbekannt', label: 'Unbekannt' },
+];
+
+// Ort-Vorbelegung: zuletzt gewählter Ort dieser Sitzung (Spec 1.1 „sticky statt mild").
+// Kein fixer Default — ohne Vorwert bleibt der Ort leer und muss gewählt werden.
+const ORT_KEY = 'stuhlform.sitzungsOrt';
+let sitzungsOrt: Ort | undefined = (() => {
+  try {
+    return (sessionStorage.getItem(ORT_KEY) as Ort | null) ?? undefined;
+  } catch {
+    return undefined;
+  }
+})();
+
+function merkeSitzungsOrt(ort: Ort) {
+  sitzungsOrt = ort;
+  try {
+    sessionStorage.setItem(ORT_KEY, ort);
+  } catch {
+    // Speicher nicht verfügbar — Modulvariable genügt für die laufende Sitzung.
+  }
+}
+
 const schmerzOpts = ([0, 1, 2, 3] as Schmerz[]).map((s) => ({
   value: String(s),
   label: schmerzLabel[s],
@@ -50,15 +88,42 @@ export function StuhlForm({
   const [vorlage, setVorlage] = useState(initial?.vorlage_gewechselt ?? false);
   const [schmerzen, setSchmerzen] = useState<Schmerz>(initial?.schmerzen ?? 0);
   const [blut, setBlut] = useState(initial?.blut ?? false);
-  const [ort, setOrt] = useState<Ort>(initial?.ort ?? 'zuhause');
+  const [ort, setOrt] = useState<Ort | null>(initial?.ort ?? sitzungsOrt ?? null);
+  // „übernommen" = Ort wurde vorbelegt, nicht aus einem bestehenden Eintrag und nicht getippt
+  const [ortUebernommen, setOrtUebernommen] = useState(!initial?.ort && !!sitzungsOrt);
+  const ortGetippt = useRef(false);
+  const [essensbezug, setEssensbezug] = useState<Essensbezug | null>(initial?.essensbezug ?? null);
   const [notiz, setNotiz] = useState(initial?.notiz ?? '');
   const [fehler, setFehler] = useState(false);
+  const [ortFehler, setOrtFehler] = useState(false);
+  const [essensFehler, setEssensFehler] = useState(false);
+
+  // Bearbeiten eines Alt-Eintrags (vor v1.1, ohne essensbezug): Feld bleibt optional,
+  // damit Altbestände nicht rückwirkend umgedeutet werden müssen.
+  const essensbezugPflicht = !initial?.id;
+
+  useEffect(() => {
+    if (initial?.ort || sitzungsOrt) return;
+    let aktiv = true;
+    letzterOrtHeute().then((o) => {
+      if (!aktiv || !o || ortGetippt.current) return;
+      setOrt(o);
+      setOrtUebernommen(true);
+    });
+    return () => {
+      aktiv = false;
+    };
+  }, [initial?.ort]);
 
   function speichern() {
-    if (bristol === null) {
-      setFehler(true);
-      return;
-    }
+    const ohneBristol = bristol === null;
+    const ohneOrt = ort === null;
+    const ohneEssen = essensbezugPflicht && essensbezug === null;
+    setFehler(ohneBristol);
+    setOrtFehler(ohneOrt);
+    setEssensFehler(ohneEssen);
+    if (bristol === null || ort === null || ohneEssen) return;
+    merkeSitzungsOrt(ort);
     onSubmit({
       zeitpunkt,
       bristol,
@@ -68,6 +133,7 @@ export function StuhlForm({
       schmerzen,
       blut,
       ort,
+      essensbezug: essensbezug ?? undefined,
       notiz: notiz.trim() || undefined,
     });
   }
@@ -92,7 +158,50 @@ export function StuhlForm({
         <SegmentGroup ariaLabel="Inkontinenz" options={inkontOpts} value={inkontinenz} onChange={setInkontinenz} />
       </div>
 
-      <Collapsible title="Mehr (Schmerzen, Blut, Ort, Notiz)">
+      <div>
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Ort</h2>
+          {ortFehler ? (
+            <span className="text-sm text-red-500">Bitte wählen</span>
+          ) : (
+            ortUebernommen && (
+              <span className="text-xs text-sky-700 dark:text-sky-300">übernommen – antippen zum Ändern</span>
+            )
+          )}
+        </div>
+        <SegmentGroup
+          ariaLabel="Ort"
+          columns={3}
+          options={ortOpts}
+          value={ort}
+          carried={ortUebernommen}
+          onChange={(o) => {
+            ortGetippt.current = true;
+            setOrt(o);
+            setOrtUebernommen(false);
+            setOrtFehler(false);
+          }}
+        />
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Zeit seit dem letzten Essen</h2>
+          {essensFehler && <span className="text-sm text-red-500">Bitte wählen</span>}
+        </div>
+        <SegmentGroup
+          ariaLabel="Zeit seit dem letzten Essen"
+          columns={3}
+          options={essensOpts}
+          value={essensbezug}
+          onChange={(e) => {
+            setEssensbezug(e);
+            setEssensFehler(false);
+          }}
+        />
+      </div>
+
+      <Collapsible title="Mehr (Schmerzen, Blut, Vorlage, Zeitpunkt, Notiz)">
         <div>
           <h3 className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">Schmerzen / Krampf</h3>
           <SegmentGroup
@@ -105,10 +214,6 @@ export function StuhlForm({
         </div>
         <Toggle label="Blut sichtbar" checked={blut} onChange={setBlut} />
         <Toggle label="Vorlage / Wäsche gewechselt" checked={vorlage} onChange={setVorlage} />
-        <div>
-          <h3 className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">Ort</h3>
-          <SegmentGroup ariaLabel="Ort" columns={3} options={ortOpts} value={ort} onChange={setOrt} />
-        </div>
         <Field label="Zeitpunkt">
           <input
             type="datetime-local"

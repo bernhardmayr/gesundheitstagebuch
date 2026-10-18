@@ -1,4 +1,5 @@
 import type { StuhlEintrag } from '../db/types';
+import { EmptyState } from './ui';
 import { toDatum } from '../db/repo';
 import { formatDatum } from '../lib/format';
 
@@ -14,7 +15,7 @@ export function Heatmap({ eintraege }: { eintraege: StuhlEintrag[] }) {
   const max = Math.max(1, ...[...map.values()].flat());
 
   if (tage.length === 0) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Keine Daten im Zeitraum.</p>;
+    return <EmptyState>Noch keine Stuhlgänge erfasst.</EmptyState>;
   }
 
   function color(n: number): string {

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getStammdaten } from '../db/repo';
 import { useZeitraum } from '../lib/useZeitraum';
-import { computeKennzahlen, num, pct } from '../lib/derive';
-import { StuehleProTagChart, BristolChart, MahlzeitHistogramm } from '../components/Charts';
+import { computeKennzahlen, dokumentationszeitraum, num, pct, type Verteilung } from '../lib/derive';
+import { StuehleProTagChart, BristolChart, EssensbezugChart } from '../components/Charts';
 import { SegmentGroup } from '../components/SegmentGroup';
 import { BigButton } from '../components/ui';
 import { stuhlToCsv, downloadText } from '../lib/csv';
@@ -15,7 +15,11 @@ import {
   vorwarnzeitKurz,
   inkontinenzKurz,
   ortLabel,
+  essensbezugLabel,
+  essensbezugKurz,
+  KEINE_ANGABEN,
 } from '../lib/format';
+import type { StuhlEintrag } from '../db/types';
 
 const zeitraeume = [
   { value: '30', label: '30 Tage' },
@@ -28,13 +32,16 @@ export function Report() {
   const [zeitraum, setZeitraum] = useState('90');
   const data = useZeitraum(Number(zeitraum));
   const stammdaten = useLiveQuery(getStammdaten, []);
-  const k = computeKennzahlen(data.stuhl, data.tage, data.tageCount);
+  // Zeitraum und „pro Woche"-Basis aus den tatsächlich vorhandenen Einträgen, nicht aus dem
+  // Filterfenster — sonst weicht der angegebene vom erfassten Zeitraum ab.
+  const doku = dokumentationszeitraum(data.stuhl, data.tage);
+  const k = computeKennzahlen(data.stuhl, data.tage, doku?.tage ?? data.tageCount);
   const erstelltAm = formatDate(Date.now());
+  const hatStuhl = k.anzahlStuehle > 0;
 
-  const zeitraumText =
-    data.stuhl.length || data.tage.length
-      ? `${formatDate(data.vonMs)} – ${formatDate(data.bisMs)}`
-      : '—';
+  const zeitraumText = doku
+    ? `${formatDate(doku.vonMs)} – ${formatDate(doku.bisMs)} (${doku.tage} Kalendertage)`
+    : KEINE_ANGABEN;
 
   return (
     <div className="space-y-4">
@@ -69,9 +76,9 @@ export function Report() {
           <h2 className="text-lg font-bold">Symptomtagebuch – Darmfunktion</h2>
           <table className="mt-3 w-full text-sm">
             <tbody>
-              <Zeile label="Name" wert={stammdaten?.name || '—'} />
-              <Zeile label="Geburtsdatum" wert={stammdaten?.geburtsdatum ? formatDatum(stammdaten.geburtsdatum) : '—'} />
-              <Zeile label="Aktenzeichen" wert={stammdaten?.aktenzeichen || '—'} />
+              <Zeile label="Name" wert={stammdaten?.name || KEINE_ANGABEN} />
+              <Zeile label="Geburtsdatum" wert={stammdaten?.geburtsdatum ? formatDatum(stammdaten.geburtsdatum) : KEINE_ANGABEN} />
+              <Zeile label="Aktenzeichen" wert={stammdaten?.aktenzeichen || KEINE_ANGABEN} />
               <Zeile label="Dokumentationszeitraum" wert={zeitraumText} />
               <Zeile label="Dokumentierte Tage" wert={String(k.dokumentierteTage)} />
               <Zeile label="Erfasste Stuhlgänge" wert={String(k.anzahlStuehle)} />
@@ -81,19 +88,40 @@ export function Report() {
           <h3 className="mt-5 font-bold">Kennzahlen</h3>
           <table className="mt-2 w-full border-collapse text-sm">
             <tbody>
-              <KZ label="Stühle pro Tag (Ø / Median / Max)" wert={`${num(k.stuehleProTagDurchschnitt)} / ${num(k.stuehleProTagMedian, 0)} / ${num(k.stuehleProTagMax, 0)}`} />
-              <KZ label="Anteil Durchfallstühle (Bristol 6–7)" wert={pct(k.anteilDurchfall)} />
-              <KZ label="Nächte mit Stuhlgang (23–06 Uhr)" wert={`${k.naechteMitStuhl} (${k.anzahlNachtstuehle} Stühle)`} />
-              <KZ label="Inkontinenzepisoden gesamt" wert={String(k.inkontinenzGesamt)} />
-              <KZ label="Inkontinenzepisoden pro Woche" wert={num(k.inkontinenzProWoche)} />
-              <KZ label="Anteil Stühle mit Vorwarnzeit < 5 Min" wert={pct(k.anteilVorwarnUnter5)} />
-              <KZ label="Ø Zeit nach Mahlzeit bis Stuhlgang" wert={k.avgMinutenNachMahlzeit !== undefined ? `${num(k.avgMinutenNachMahlzeit, 0)} Min` : '—'} />
+              <KZ
+                label="Stühle pro Tag (Ø / Median / Max)"
+                wert={hatStuhl ? `${num(k.stuehleProTagDurchschnitt)} / ${num(k.stuehleProTagMedian, 0)} / ${num(k.stuehleProTagMax, 0)}` : KEINE_ANGABEN}
+              />
+              <KZ label="Anteil Durchfallstühle (Bristol 6–7)" wert={hatStuhl ? pct(k.anteilDurchfall) : KEINE_ANGABEN} />
+              <KZ label="Nächte mit Stuhlgang (23–06 Uhr)" wert={hatStuhl ? `${k.naechteMitStuhl} (${k.anzahlNachtstuehle} Stühle)` : KEINE_ANGABEN} />
+              <KZ label="Inkontinenzepisoden gesamt" wert={hatStuhl ? String(k.inkontinenzGesamt) : KEINE_ANGABEN} />
+              <KZ label="Inkontinenzepisoden pro Woche" wert={hatStuhl ? num(k.inkontinenzProWoche) : KEINE_ANGABEN} />
+              <KZ label="Anteil Stühle mit Vorwarnzeit < 5 Min" wert={hatStuhl ? pct(k.anteilVorwarnUnter5) : KEINE_ANGABEN} />
+              <KZ
+                label="Anteil Stühle mit kurzem Essensbezug (< 60 Min)"
+                wert={
+                  k.anteilEssensbezugKurz !== undefined
+                    ? `${pct(k.anteilEssensbezugKurz)} (n = ${k.essensbezugBasis})`
+                    : KEINE_ANGABEN
+                }
+              />
+              <KZ
+                label="Verteilung Zeit seit dem Essen"
+                wert={verteilungText(k.essensbezugVerteilung, (key) => essensbezugLabel[key])}
+              />
+              {k.avgMinutenNachMahlzeit !== undefined && (
+                <KZ
+                  label="Ø Minuten nach separat geloggter Mahlzeit"
+                  wert={`${num(k.avgMinutenNachMahlzeit, 0)} Min`}
+                />
+              )}
+              <KZ label="Verteilung der Orte" wert={verteilungText(k.ortVerteilung, (key) => ortLabel[key])} />
               <KZ
                 label="Gewichtsveränderung im Zeitraum"
                 wert={
                   k.gewichtDelta !== undefined
                     ? `${k.gewichtDelta > 0 ? '+' : ''}${num(k.gewichtDelta)} kg (${num(k.gewichtStart)} → ${num(k.gewichtEnde)} kg)`
-                    : '—'
+                    : KEINE_ANGABEN
                 }
               />
               <KZ label="Tage mit Aktivitätseinschränkung" wert={String(k.eingeschraenkteTage)} />
@@ -115,8 +143,8 @@ export function Report() {
               <BristolChart eintraege={data.stuhl} height={190} />
             </figure>
             <figure>
-              <figcaption className="mb-1 text-sm font-medium">Zeit nach Mahlzeit bis zum Stuhlgang (Minuten)</figcaption>
-              <MahlzeitHistogramm eintraege={data.stuhl} height={190} />
+              <figcaption className="mb-1 text-sm font-medium">Zeit seit dem letzten Essen bis zum Stuhlgang</figcaption>
+              <EssensbezugChart eintraege={data.stuhl} height={190} />
             </figure>
           </div>
         </div>
@@ -134,7 +162,7 @@ export function Report() {
                 <th className="py-1 pr-2">Inkont.</th>
                 <th className="py-1 pr-2">Schm.</th>
                 <th className="py-1 pr-2">Blut</th>
-                <th className="py-1 pr-2">n. Mahlz.</th>
+                <th className="py-1 pr-2">Essen</th>
                 <th className="py-1 pr-2">Ort</th>
                 <th className="py-1">Notiz</th>
               </tr>
@@ -149,7 +177,7 @@ export function Report() {
                   <td className="py-1 pr-2">{inkontinenzKurz[e.inkontinenz]}</td>
                   <td className="py-1 pr-2">{e.schmerzen || ''}</td>
                   <td className="py-1 pr-2">{e.blut ? 'ja' : ''}</td>
-                  <td className="py-1 pr-2">{e.minuten_nach_mahlzeit ?? ''}</td>
+                  <td className="py-1 pr-2 whitespace-nowrap">{essenZelle(e)}</td>
                   <td className="py-1 pr-2">{ortLabel[e.ort]}</td>
                   <td className="py-1">{e.notiz ?? ''}</td>
                 </tr>
@@ -171,6 +199,20 @@ export function Report() {
       </div>
     </div>
   );
+}
+
+// Kompakte Verteilung „Zuhause 12 · Unterwegs 3"; Einträge ohne Angabe separat ausgewiesen.
+function verteilungText<K extends string>(v: Verteilung<K>, label: (k: K) => string): string {
+  const teile = v.werte.filter((w) => w.anzahl > 0).map((w) => `${label(w.key)} ${w.anzahl}`);
+  if (teile.length === 0) return KEINE_ANGABEN;
+  if (v.ohneAngabe > 0) teile.push(`ohne Angabe ${v.ohneAngabe}`);
+  return teile.join(' · ');
+}
+
+function essenZelle(e: StuhlEintrag): string {
+  if (e.essensbezug) return essensbezugKurz[e.essensbezug];
+  if (e.minuten_nach_mahlzeit !== undefined) return `${e.minuten_nach_mahlzeit} min (Mahlz.)`;
+  return 'k. A.';
 }
 
 function Zeile({ label, wert }: { label: string; wert: string }) {

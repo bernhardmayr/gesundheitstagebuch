@@ -1,6 +1,6 @@
 import { db } from '../db/db';
 import { addMahlzeit, addStuhl, putTag, toDatum } from '../db/repo';
-import type { Bristol, Inkontinenz, Vorwarnzeit } from '../db/types';
+import type { Bristol, Essensbezug, Inkontinenz, Vorwarnzeit } from '../db/types';
 
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const rnd = (min: number, max: number) => min + Math.random() * (max - min);
@@ -8,6 +8,7 @@ const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 // Erzeugt ~30 Tage plausible Beispieldaten zur Prüfung von Auswertung und Bericht.
 export async function seedDemo(tage = 30): Promise<void> {
   const vorwarn: Vorwarnzeit[] = ['sofort', 'unter_5min', 'unter_15min', 'ueber_15min'];
+  const essen: Essensbezug[] = ['nuechtern', 'unter_30min', 'unter_30min', '30_60min', '1_2h', 'ueber_2h', 'unbekannt'];
   const inkont: Inkontinenz[] = ['keine', 'keine', 'keine', 'stuhlschmieren', 'teilverlust', 'vollverlust'];
 
   for (let d = tage - 1; d >= 0; d--) {
@@ -41,6 +42,7 @@ export async function seedDemo(tage = 30): Promise<void> {
         schmerzen: pick([0, 0, 1, 2, 3]) as 0 | 1 | 2 | 3,
         blut: Math.random() < 0.1,
         ort: pick(['zuhause', 'unterwegs', 'arbeit']),
+        essensbezug: pick(essen),
       });
     }
 

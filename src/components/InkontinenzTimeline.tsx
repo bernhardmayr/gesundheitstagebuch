@@ -1,4 +1,5 @@
 import type { StuhlEintrag } from '../db/types';
+import { EmptyState } from './ui';
 import { istInkontinenzEpisode } from '../lib/derive';
 import { formatDate, inkontinenzLabel } from '../lib/format';
 
@@ -19,7 +20,7 @@ export function InkontinenzTimeline({
 }) {
   const episoden = eintraege.filter(istInkontinenzEpisode);
   if (episoden.length === 0) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Keine Inkontinenzereignisse im Zeitraum.</p>;
+    return <EmptyState>Keine Inkontinenzereignisse im Zeitraum erfasst.</EmptyState>;
   }
   const span = Math.max(1, bisMs - vonMs);
 

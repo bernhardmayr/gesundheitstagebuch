@@ -12,8 +12,14 @@ import {
   Cell,
 } from 'recharts';
 import type { StuhlEintrag, TagesEintrag } from '../db/types';
-import { stuehleProTag, bristolVerteilung } from '../lib/derive';
-import { formatDatum } from '../lib/format';
+import {
+  stuehleProTag,
+  bristolVerteilung,
+  essensbezugVerteilung,
+  ortVerteilung,
+} from '../lib/derive';
+import { formatDatum, essensbezugKurz, ortLabel } from '../lib/format';
+import { EmptyState } from './ui';
 
 // Für die Druckansicht können feste Maße übergeben werden (ResponsiveContainer misst beim
 // Drucken teils 0). Ansonsten füllt der Chart die Breite des Containers.
@@ -57,6 +63,7 @@ export function StuehleProTagChart({
     ...d,
     label: formatDatum(d.datum).slice(0, 5),
   }));
+  if (data.length === 0) return <EmptyState>Noch keine Stuhlgänge erfasst.</EmptyState>;
   return (
     <ChartFrame height={height} width={width}>
       <BarChart data={data} width={width} height={height} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -83,6 +90,7 @@ export function BristolChart({
   width?: number;
 }) {
   const data = bristolVerteilung(eintraege).map((d) => ({ name: `Typ ${d.bristol}`, ...d }));
+  if (eintraege.length === 0) return <EmptyState>Noch keine Stuhlgänge erfasst.</EmptyState>;
   return (
     <ChartFrame height={height} width={width}>
       <BarChart data={data} width={width} height={height} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -125,6 +133,9 @@ export function MahlzeitHistogramm({
     label: b.label,
     anzahl: werte.filter((v) => v >= b.min && v < b.max).length,
   }));
+  if (werte.length === 0) {
+    return <EmptyState>Noch keine Angaben erfasst – nur befüllt, wenn Mahlzeiten separat eingetragen werden.</EmptyState>;
+  }
   return (
     <ChartFrame height={height} width={width}>
       <BarChart data={data} width={width} height={height} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -136,6 +147,71 @@ export function MahlzeitHistogramm({
       </BarChart>
     </ChartFrame>
   );
+}
+
+// Kategorien-Balken für Verteilungen (Essensbezug, Ort). Einträge ohne Angabe werden als
+// Hinweis unter dem Diagramm ausgewiesen, nicht als eigene Kategorie umgedeutet.
+function VerteilungChart({
+  data,
+  ohneAngabe,
+  fill,
+  height,
+  width,
+}: {
+  data: { label: string; anzahl: number }[];
+  ohneAngabe: number;
+  fill: string;
+  height: number;
+  width?: number;
+}) {
+  const gesamt = data.reduce((a, d) => a + d.anzahl, 0);
+  if (gesamt === 0) return <EmptyState />;
+  return (
+    <div>
+      <ChartFrame height={height} width={width}>
+        <BarChart data={data} width={width} height={height} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#88888833" />
+          <XAxis dataKey="label" tick={AXIS} interval={0} />
+          <YAxis allowDecimals={false} tick={AXIS} />
+          <Tooltip />
+          <Bar dataKey="anzahl" fill={fill} radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ChartFrame>
+      {ohneAngabe > 0 && (
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {ohneAngabe} Einträge ohne Angabe (vor Einführung des Feldes erfasst)
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function EssensbezugChart({
+  eintraege,
+  height = 200,
+  width,
+}: {
+  eintraege: StuhlEintrag[];
+  height?: number;
+  width?: number;
+}) {
+  const v = essensbezugVerteilung(eintraege);
+  const data = v.werte.map((w) => ({ label: essensbezugKurz[w.key], anzahl: w.anzahl }));
+  return <VerteilungChart data={data} ohneAngabe={v.ohneAngabe} fill="#8b5cf6" height={height} width={width} />;
+}
+
+export function OrtChart({
+  eintraege,
+  height = 180,
+  width,
+}: {
+  eintraege: StuhlEintrag[];
+  height?: number;
+  width?: number;
+}) {
+  const v = ortVerteilung(eintraege);
+  const data = v.werte.map((w) => ({ label: ortLabel[w.key], anzahl: w.anzahl }));
+  return <VerteilungChart data={data} ohneAngabe={v.ohneAngabe} fill="#14b8a6" height={height} width={width} />;
 }
 
 export function GewichtChart({
@@ -152,7 +228,7 @@ export function GewichtChart({
     .sort((a, b) => a.datum.localeCompare(b.datum))
     .map((t) => ({ label: formatDatum(t.datum).slice(0, 5), gewicht: t.gewicht_kg }));
   if (data.length === 0) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Keine Gewichtsdaten erfasst.</p>;
+    return <EmptyState>Noch keine Gewichtsangaben erfasst (Tagesabschluss).</EmptyState>;
   }
   return (
     <ChartFrame height={height} width={width}>

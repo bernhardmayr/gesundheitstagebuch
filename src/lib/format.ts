@@ -3,6 +3,7 @@ import type {
   Vorwarnzeit,
   Inkontinenz,
   Ort,
+  Essensbezug,
   MahlzeitArt,
 } from '../db/types';
 
@@ -59,6 +60,27 @@ export const ortLabel: Record<Ort, string> = {
   unterwegs: 'Unterwegs',
   arbeit: 'Arbeit',
 };
+
+export const essensbezugLabel: Record<Essensbezug, string> = {
+  nuechtern: 'Nüchtern (> 3 h)',
+  unter_30min: '< 30 Min',
+  '30_60min': '30–60 Min',
+  '1_2h': '1–2 h',
+  ueber_2h: '> 2 h',
+  unbekannt: 'Unbekannt',
+};
+
+export const essensbezugKurz: Record<Essensbezug, string> = {
+  nuechtern: 'nüchtern',
+  unter_30min: '<30 min',
+  '30_60min': '30–60 min',
+  '1_2h': '1–2 h',
+  ueber_2h: '>2 h',
+  unbekannt: 'unbek.',
+};
+
+// Einheitlicher Text für fehlende Werte — statt „–"/„—" (Spec 4, Darstellungsregel).
+export const KEINE_ANGABEN = 'keine Angaben';
 
 export const schmerzLabel = ['keine', 'leicht', 'mittel', 'stark'] as const;
 

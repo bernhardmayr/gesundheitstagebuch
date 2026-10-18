@@ -4,6 +4,7 @@ import type {
   MahlzeitEintrag,
   TagesEintrag,
   Stammdaten,
+  Ort,
 } from './types';
 
 export function uid(): string {
@@ -24,7 +25,8 @@ export function toDatum(d: Date | number): string {
 
 // ---- Stuhl ----
 
-// Berechnet Minuten seit der letzten Mahlzeit vor `zeitpunkt` (max. 12 h Fenster).
+// Ergänzung zu `essensbezug`: Minuten seit der letzten separat geloggten Mahlzeit vor
+// `zeitpunkt` (max. 12 h Fenster). Bleibt leer, wenn keine Mahlzeit erfasst wurde.
 export async function minutenNachMahlzeit(zeitpunkt: number): Promise<number | undefined> {
   const letzte = await db.mahlzeit
     .where('zeitpunkt')
@@ -57,6 +59,14 @@ export async function updateStuhl(
     id,
     minuten_nach_mahlzeit: await minutenNachMahlzeit(data.zeitpunkt),
   });
+}
+
+// Ort des letzten heutigen Stuhleintrags — Fallback für die Ort-Vorbelegung.
+export async function letzterOrtHeute(): Promise<Ort | undefined> {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const letzter = await db.stuhl.where('zeitpunkt').aboveOrEqual(start.getTime()).sortBy('zeitpunkt');
+  return letzter[letzter.length - 1]?.ort;
 }
 
 export const deleteStuhl = (id: string) => db.stuhl.delete(id);

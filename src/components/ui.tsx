@@ -105,3 +105,13 @@ export function StatCard({ label, value, hint }: { label: string; value: string;
     </div>
   );
 }
+
+// Leerer Zustand für Kennzahlen/Grafiken ohne Daten — macht sichtbar, dass hier etwas zu
+// erfassen wäre (statt leerer Achse oder „—").
+export function EmptyState({ children = 'Noch keine Angaben erfasst.' }: { children?: ReactNode }) {
+  return (
+    <p className="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+      {children}
+    </p>
+  );
+}

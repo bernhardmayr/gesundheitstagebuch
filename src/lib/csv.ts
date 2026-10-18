@@ -1,5 +1,13 @@
 import type { StuhlEintrag } from '../db/types';
-import { formatDate, formatTime, bristolTyp, vorwarnzeitKurz, inkontinenzKurz, ortLabel } from './format';
+import {
+  formatDate,
+  formatTime,
+  bristolTyp,
+  vorwarnzeitKurz,
+  inkontinenzKurz,
+  ortLabel,
+  essensbezugLabel,
+} from './format';
 
 function csvCell(value: string | number | boolean | undefined): string {
   if (value === undefined) return '';
@@ -17,7 +25,8 @@ const HEADER = [
   'Vorlage gewechselt',
   'Schmerzen (0-3)',
   'Blut',
-  'Min. nach Mahlzeit',
+  'Zeit seit Essen',
+  'Min. nach geloggter Mahlzeit',
   'Ort',
   'Notiz',
 ];
@@ -36,6 +45,7 @@ export function stuhlToCsv(eintraege: StuhlEintrag[]): string {
         e.vorlage_gewechselt ? 'ja' : 'nein',
         e.schmerzen,
         e.blut ? 'ja' : 'nein',
+        e.essensbezug ? essensbezugLabel[e.essensbezug] : '',
         e.minuten_nach_mahlzeit ?? '',
         ortLabel[e.ort],
         e.notiz ?? '',
