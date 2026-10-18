@@ -72,7 +72,11 @@ export function Analysis() {
             <StatCard
               label="Essensbezug < 60 Min"
               value={k.anteilEssensbezugKurz !== undefined ? pct(k.anteilEssensbezugKurz) : KEINE_ANGABEN}
-              hint={k.essensbezugBasis ? `von ${k.essensbezugBasis} Stühlen mit Angabe` : 'Zeit seit dem Essen'}
+              hint={
+                k.essensbezugBasis
+                  ? `davon < 15 Min: ${pct(k.anteilEssensbezugSehrKurz ?? 0)} · n = ${k.essensbezugBasis}`
+                  : 'Zeit seit dem Essen'
+              }
             />
           </div>
 

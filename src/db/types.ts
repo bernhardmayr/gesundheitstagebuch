@@ -14,7 +14,10 @@ export type Ort = 'zuhause' | 'unterwegs' | 'arbeit';
 // Zeit seit dem letzten Essen — direkt im Stuhlformular erfragt (v1.1).
 export type Essensbezug =
   | 'nuechtern' // > 3 h nichts gegessen
-  | 'unter_30min'
+  | 'unter_5min' // während des Essens / direkt danach
+  | '5_15min'
+  | '15_30min'
+  | 'unter_30min' // nur Altbestand (v1.1 vor Feinunterteilung), wird nicht mehr angeboten
   | '30_60min'
   | '1_2h'
   | 'ueber_2h'

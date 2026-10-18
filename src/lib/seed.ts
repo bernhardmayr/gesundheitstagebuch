@@ -8,7 +8,17 @@ const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 // Erzeugt ~30 Tage plausible Beispieldaten zur Prüfung von Auswertung und Bericht.
 export async function seedDemo(tage = 30): Promise<void> {
   const vorwarn: Vorwarnzeit[] = ['sofort', 'unter_5min', 'unter_15min', 'ueber_15min'];
-  const essen: Essensbezug[] = ['nuechtern', 'unter_30min', 'unter_30min', '30_60min', '1_2h', 'ueber_2h', 'unbekannt'];
+  const essen: Essensbezug[] = [
+    'unter_5min',
+    'unter_5min',
+    '5_15min',
+    '15_30min',
+    '30_60min',
+    '1_2h',
+    'ueber_2h',
+    'nuechtern',
+    'unbekannt',
+  ];
   const inkont: Inkontinenz[] = ['keine', 'keine', 'keine', 'stuhlschmieren', 'teilverlust', 'vollverlust'];
 
   for (let d = tage - 1; d >= 0; d--) {

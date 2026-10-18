@@ -37,11 +37,13 @@ const ortOpts: { value: Ort; label: string }[] = [
 ];
 
 const essensOpts: { value: Essensbezug; label: string; sub?: string }[] = [
-  { value: 'nuechtern', label: 'Nüchtern', sub: '> 3 h nichts' },
-  { value: 'unter_30min', label: '< 30 Min' },
+  { value: 'unter_5min', label: '< 5 Min', sub: 'direkt danach' },
+  { value: '5_15min', label: '5–15 Min' },
+  { value: '15_30min', label: '15–30 Min' },
   { value: '30_60min', label: '30–60 Min' },
   { value: '1_2h', label: '1–2 h' },
   { value: 'ueber_2h', label: '> 2 h' },
+  { value: 'nuechtern', label: 'Nüchtern', sub: '> 3 h nichts' },
   { value: 'unbekannt', label: 'Unbekannt' },
 ];
 
@@ -192,7 +194,12 @@ export function StuhlForm({
         <SegmentGroup
           ariaLabel="Zeit seit dem letzten Essen"
           columns={3}
-          options={essensOpts}
+          options={
+            // Altwert „< 30 Min" nur zeigen, wenn ein bestehender Eintrag ihn trägt
+            essensbezug === 'unter_30min'
+              ? [...essensOpts, { value: 'unter_30min', label: '< 30 Min', sub: 'alt, bitte präzisieren' }]
+              : essensOpts
+          }
           value={essensbezug}
           onChange={(e) => {
             setEssensbezug(e);

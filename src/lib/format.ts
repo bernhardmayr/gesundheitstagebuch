@@ -63,7 +63,10 @@ export const ortLabel: Record<Ort, string> = {
 
 export const essensbezugLabel: Record<Essensbezug, string> = {
   nuechtern: 'Nüchtern (> 3 h)',
-  unter_30min: '< 30 Min',
+  unter_5min: '< 5 Min (direkt danach)',
+  '5_15min': '5–15 Min',
+  '15_30min': '15–30 Min',
+  unter_30min: '< 30 Min (grob, alt)',
   '30_60min': '30–60 Min',
   '1_2h': '1–2 h',
   ueber_2h: '> 2 h',
@@ -72,6 +75,9 @@ export const essensbezugLabel: Record<Essensbezug, string> = {
 
 export const essensbezugKurz: Record<Essensbezug, string> = {
   nuechtern: 'nüchtern',
+  unter_5min: '<5 min',
+  '5_15min': '5–15 min',
+  '15_30min': '15–30 min',
   unter_30min: '<30 min',
   '30_60min': '30–60 min',
   '1_2h': '1–2 h',

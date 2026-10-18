@@ -166,15 +166,23 @@ function VerteilungChart({
 }) {
   const gesamt = data.reduce((a, d) => a + d.anzahl, 0);
   if (gesamt === 0) return <EmptyState />;
+  // Liegende Balken: Kategorien-Beschriftungen bleiben auch schmal lesbar.
+  const h = Math.max(height, data.length * 28 + 24);
   return (
     <div>
-      <ChartFrame height={height} width={width}>
-        <BarChart data={data} width={width} height={height} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#88888833" />
-          <XAxis dataKey="label" tick={AXIS} interval={0} />
-          <YAxis allowDecimals={false} tick={AXIS} />
+      <ChartFrame height={h} width={width}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          width={width}
+          height={h}
+          margin={{ top: 4, right: 12, left: 4, bottom: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#88888833" horizontal={false} />
+          <XAxis type="number" allowDecimals={false} tick={AXIS} />
+          <YAxis type="category" dataKey="label" tick={AXIS} width={84} interval={0} />
           <Tooltip />
-          <Bar dataKey="anzahl" fill={fill} radius={[3, 3, 0, 0]} />
+          <Bar dataKey="anzahl" fill={fill} radius={[0, 3, 3, 0]} />
         </BarChart>
       </ChartFrame>
       {ohneAngabe > 0 && (
@@ -188,7 +196,7 @@ function VerteilungChart({
 
 export function EssensbezugChart({
   eintraege,
-  height = 200,
+  height = 120,
   width,
 }: {
   eintraege: StuhlEintrag[];
@@ -196,13 +204,15 @@ export function EssensbezugChart({
   width?: number;
 }) {
   const v = essensbezugVerteilung(eintraege);
-  const data = v.werte.map((w) => ({ label: essensbezugKurz[w.key], anzahl: w.anzahl }));
+  const data = v.werte
+    .filter((w) => w.key !== 'unter_30min' || w.anzahl > 0)
+    .map((w) => ({ label: essensbezugKurz[w.key], anzahl: w.anzahl }));
   return <VerteilungChart data={data} ohneAngabe={v.ohneAngabe} fill="#8b5cf6" height={height} width={width} />;
 }
 
 export function OrtChart({
   eintraege,
-  height = 180,
+  height = 110,
   width,
 }: {
   eintraege: StuhlEintrag[];

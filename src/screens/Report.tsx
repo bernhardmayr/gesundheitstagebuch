@@ -106,6 +106,14 @@ export function Report() {
                 }
               />
               <KZ
+                label="Anteil Stühle mit sehr kurzem Essensbezug (< 15 Min)"
+                wert={
+                  k.anteilEssensbezugSehrKurz !== undefined
+                    ? `${pct(k.anteilEssensbezugSehrKurz)} (n = ${k.essensbezugBasis})`
+                    : KEINE_ANGABEN
+                }
+              />
+              <KZ
                 label="Verteilung Zeit seit dem Essen"
                 wert={verteilungText(k.essensbezugVerteilung, (key) => essensbezugLabel[key])}
               />

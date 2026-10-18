@@ -39,6 +39,7 @@ export interface Kennzahlen {
   essensbezugVerteilung: Verteilung<Essensbezug>;
   essensbezugBasis: number; // Einträge mit Angabe ≠ „unbekannt"
   anteilEssensbezugKurz?: number; // < 60 Min, 0..1 bezogen auf essensbezugBasis
+  anteilEssensbezugSehrKurz?: number; // < 15 Min, 0..1 bezogen auf essensbezugBasis
   ortVerteilung: Verteilung<Ort>;
   gewichtStart?: number;
   gewichtEnde?: number;
@@ -54,6 +55,9 @@ export interface Verteilung<K extends string> {
 }
 
 export const ESSENSBEZUG_REIHENFOLGE: Essensbezug[] = [
+  'unter_5min',
+  '5_15min',
+  '15_30min',
   'unter_30min',
   '30_60min',
   '1_2h',
@@ -61,6 +65,15 @@ export const ESSENSBEZUG_REIHENFOLGE: Essensbezug[] = [
   'nuechtern',
   'unbekannt',
 ];
+
+const ESSEN_UNTER_15 = new Set<Essensbezug>(['unter_5min', '5_15min']);
+const ESSEN_UNTER_60 = new Set<Essensbezug>([
+  'unter_5min',
+  '5_15min',
+  '15_30min',
+  'unter_30min',
+  '30_60min',
+]);
 
 export const ORT_REIHENFOLGE: Ort[] = ['zuhause', 'unterwegs', 'arbeit'];
 
@@ -165,9 +178,8 @@ export function computeKennzahlen(
 
   const essen = essensbezugVerteilung(stuhl);
   const essensBasis = stuhl.filter((e) => e.essensbezug && e.essensbezug !== 'unbekannt').length;
-  const essensKurz = stuhl.filter(
-    (e) => e.essensbezug === 'unter_30min' || e.essensbezug === '30_60min',
-  ).length;
+  const essensKurz = stuhl.filter((e) => e.essensbezug && ESSEN_UNTER_60.has(e.essensbezug)).length;
+  const essensSehrKurz = stuhl.filter((e) => e.essensbezug && ESSEN_UNTER_15.has(e.essensbezug)).length;
 
   const gewichte = tage
     .filter((t) => typeof t.gewicht_kg === 'number')
@@ -194,6 +206,7 @@ export function computeKennzahlen(
     essensbezugVerteilung: essen,
     essensbezugBasis: essensBasis,
     anteilEssensbezugKurz: essensBasis ? essensKurz / essensBasis : undefined,
+    anteilEssensbezugSehrKurz: essensBasis ? essensSehrKurz / essensBasis : undefined,
     ortVerteilung: ortVerteilung(stuhl),
     gewichtStart,
     gewichtEnde,
