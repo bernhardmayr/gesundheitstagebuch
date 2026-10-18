@@ -44,6 +44,13 @@ body {
     background: #fff !important;
     color: #000 !important;
   }
+  /* App-Rahmen (Dark Mode, Handybreite) beim Drucken neutralisieren */
+  #root > div,
+  main {
+    background: #fff !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
   .print-page {
     page-break-after: always;
   }
@@ -61,17 +68,5 @@ body {
   }
   @page {
     margin: 16mm 12mm 18mm;
-  }
-  /* Wird von Chromium auf jeder gedruckten Seite wiederholt */
-  .print-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 9px;
-    color: #555;
-    padding-top: 2px;
-    border-top: 1px solid #ccc;
   }
 }

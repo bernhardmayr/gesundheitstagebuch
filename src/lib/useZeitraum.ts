@@ -36,7 +36,8 @@ export function useZeitraum(tage: number): ZeitraumData {
       db.mahlzeit.where('zeitpunkt').between(vonMs, bisMs, true, true).sortBy('zeitpunkt'),
       db.tag
         .where('datum')
-        .between(toDatum(vonMs || now - 1), toDatum(bisMs), true, true)
+        // „Alles" (vonMs = 0): kleinstes mögliches Datum, sonst würden nur heutige Tage geladen
+        .between(vonMs === 0 ? '0000-01-01' : toDatum(vonMs), toDatum(bisMs), true, true)
         .sortBy('datum'),
     ]);
     // Bei "alles" den tatsächlichen Startzeitpunkt aus den Daten ableiten

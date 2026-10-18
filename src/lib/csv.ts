@@ -58,7 +58,10 @@ export function stuhlToCsv(eintraege: StuhlEintrag[]): string {
 }
 
 export function downloadText(filename: string, text: string, mime = 'text/plain'): void {
-  const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+  downloadBlob(filename, new Blob([text], { type: `${mime};charset=utf-8` }));
+}
+
+export function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
