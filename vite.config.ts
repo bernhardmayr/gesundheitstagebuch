@@ -10,7 +10,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // Neue Version wird angekündigt (UpdateHinweis) statt still aktiviert
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         // Bewusst diskreter Name / kein Symptombezug im Klartext

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useNavigate } from 'react-router-dom';
 import { getStammdaten } from '../db/repo';
 import { useZeitraum } from '../lib/useZeitraum';
 import { computeKennzahlen, dokumentationszeitraum } from '../lib/derive';
@@ -35,12 +36,22 @@ export function Report() {
   const [zeitraum, setZeitraum] = useState('90');
   const [status, setStatus] = useState<string | null>(null);
   const data = useZeitraum(Number(zeitraum));
-  const stammdaten = useLiveQuery(getStammdaten, []);
+  // null = keine Stammdaten gespeichert (undefined bedeutet bei useLiveQuery „lädt noch“)
+  const stammdaten = useLiveQuery(async () => (await getStammdaten()) ?? null, []);
   // Zeitraum und „pro Woche"-Basis aus den tatsächlich vorhandenen Einträgen, nicht aus dem
   // Filterfenster — sonst weicht der angegebene vom erfassten Zeitraum ab.
   const doku = dokumentationszeitraum(data.stuhl, data.tage);
   const k = computeKennzahlen(data.stuhl, data.tage, doku?.tage ?? data.tageCount);
   const erstelltAm = formatDate(Date.now());
+  const navigate = useNavigate();
+  const fehlendeStammdaten =
+    stammdaten === undefined
+      ? []
+      : [
+          !stammdaten?.name && 'Name',
+          !stammdaten?.geburtsdatum && 'Geburtsdatum',
+          !stammdaten?.aktenzeichen && 'Aktenzeichen',
+        ].filter((f): f is string => !!f);
 
   async function pdf(art: 'download' | 'teilen') {
     setStatus('PDF wird erstellt …');
@@ -74,8 +85,20 @@ export function Report() {
         <h1 className="text-xl font-semibold">Arztbericht</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Vorschau des Berichts. Das PDF enthält dieselben Angaben, mit Seitenzahlen und vollständiger
-          Rohdatentabelle. {!stammdaten?.name && 'Tipp: Stammdaten unter „Mehr“ ausfüllen für den Briefkopf.'}
+          Rohdatentabelle.
         </p>
+        {fehlendeStammdaten.length > 0 && (
+          <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-4 space-y-3">
+            <p className="text-sm text-amber-900 dark:text-amber-100">
+              <span className="font-semibold">Briefkopf unvollständig:</span> {fehlendeStammdaten.join(', ')}{' '}
+              {fehlendeStammdaten.length === 1 ? 'fehlt' : 'fehlen'}. Im Bericht steht dort sonst
+              „keine Angaben“.
+            </p>
+            <BigButton variant="secondary" onClick={() => navigate('/einstellungen')} className="w-full">
+              Stammdaten eintragen
+            </BigButton>
+          </div>
+        )}
         <SegmentGroup ariaLabel="Zeitraum" columns={4} options={zeitraeume} value={zeitraum} onChange={setZeitraum} />
         <div className={`grid gap-3 ${kannTeilen ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <BigButton onClick={() => pdf('download')}>PDF herunterladen</BigButton>
